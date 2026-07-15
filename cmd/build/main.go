@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -52,10 +53,34 @@ func printUsage() {
 `)
 }
 
+type Config struct {
+	Title       string
+	Width       int
+	Height      int
+	Fullscreen  bool
+	Frameless   bool
+	ContextMenu bool
+}
+
+func loadConfig() Config {
+	cfg := Config{
+		Title:       "My HTML5 Game",
+		Width:       1280,
+		Height:      720,
+		Fullscreen:  false,
+		Frameless:   false,
+		ContextMenu: false,
+	}
+	if data, err := os.ReadFile("html5player_config.json"); err == nil {
+		json.Unmarshal(data, &cfg)
+	}
+	return cfg
+}
+
 func buildCmd() {
 	mode := flag.String("mode", "embed", "Режим сборки: embed, dir, xor")
 	out := flag.String("out", "game.exe", "Имя выходного файла")
-	key := flag.String("key", "", "Ключ для XOR (только для mode=xor)")
+	key := flag.String("key", "", "Ключ для XOR (обязательно для mode=xor)")
 	dirName := flag.String("dirName", "game_data", "Имя папки для dir режима")
 	pakName := flag.String("pakName", "game_res.pak", "Имя pak файла для xor режима")
 	flag.Parse()
@@ -65,12 +90,15 @@ func buildCmd() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Собираем игру (режим: %s)...\n", *mode)
+	fmt.Printf("Сборка игры (режим: %s)...\n", *mode)
 	buildGame(*out, *mode, *key, *dirName, *pakName)
 }
 
 func buildGame(out string, mode string, key string, dirName string, pakName string) {
+	cfg := loadConfig()
 	ldflags := fmt.Sprintf("-X main.RunMode=%s -X main.XorKey=%s -X main.DirName=%s -X main.PakName=%s", mode, key, dirName, pakName)
+	ldflags += fmt.Sprintf(" -X 'main.Title=%s' -X main.Width=%d -X main.Height=%d -X main.Fullscreen=%t -X main.Frameless=%t -X main.ContextMenu=%t",
+		cfg.Title, cfg.Width, cfg.Height, cfg.Fullscreen, cfg.Frameless, cfg.ContextMenu)
 	ldflags += " -H windowsgui"
 
 	generateWinRes()
