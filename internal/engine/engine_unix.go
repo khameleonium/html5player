@@ -44,3 +44,8 @@ func (e *Engine) Init(js string) {
 	e.w.Init(js)
 }
 
+func (e *Engine) SetFullscreen(fullscreen bool, frameless bool) {
+	// Not implemented natively in pure Go for GTK/Cocoa yet.
+	// For cross-platform support without Cgo, users can use JS:
+	// document.documentElement.requestFullscreen()
+}

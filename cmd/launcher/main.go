@@ -18,6 +18,8 @@ type Config struct {
 	Height     int
 	DevTools   bool
 	MuteAudio  bool
+	Fullscreen bool
+	Frameless  bool
 }
 
 const ConfigFile = "html5player_config.json"
@@ -25,11 +27,13 @@ const ConfigFile = "html5player_config.json"
 func loadConfig() Config {
 	// Default config
 	cfg := Config{
-		Title:     "HTML5 Portable Game",
-		Width:     1280,
-		Height:    720,
-		DevTools:  false,
-		MuteAudio: false,
+		Title:      "HTML5 Portable Game",
+		Width:      1280,
+		Height:     720,
+		DevTools:   false,
+		MuteAudio:  false,
+		Fullscreen: false,
+		Frameless:  false,
 	}
 
 	if data, err := os.ReadFile(ConfigFile); err == nil {
@@ -50,7 +54,7 @@ func main() {
 
 	// 1. Serve current directory "."
 	ds := server.NewDirDataSource(".")
-	
+
 	// Check if index.html exists
 	if _, err := os.Stat("index.html"); os.IsNotExist(err) {
 		log.Println("ПРЕДУПРЕЖДЕНИЕ: index.html не найден в текущей папке. Убедитесь, что лаунчер лежит рядом с игрой!")
@@ -65,8 +69,9 @@ func main() {
 
 	// 3. Init Engine
 	eng := engine.New(cfg.Title, strconv.Itoa(cfg.Width), strconv.Itoa(cfg.Height))
+	eng.SetFullscreen(cfg.Fullscreen, cfg.Frameless)
 	defer eng.Destroy()
-	
+
 	// Inject Mute Script
 	if cfg.MuteAudio {
 		eng.Init(`

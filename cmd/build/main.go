@@ -19,7 +19,7 @@ func main() {
 	}
 
 	command := os.Args[1]
-	
+
 	switch command {
 	case "pack":
 		packCmd()
@@ -72,13 +72,13 @@ func buildCmd() {
 func buildGame(out string, mode string, key string, dirName string, pakName string) {
 	ldflags := fmt.Sprintf("-X main.RunMode=%s -X main.XorKey=%s -X main.DirName=%s -X main.PakName=%s", mode, key, dirName, pakName)
 	ldflags += " -H windowsgui"
-	
+
 	generateWinRes()
-	
+
 	cmd := exec.Command("go", "build", "-ldflags", ldflags, "-o", out, "./cmd/game")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Ошибка сборки %s: %v\n", out, err)
 		os.Exit(1)
@@ -97,7 +97,7 @@ func batchCmd() {
 		fmt.Println("Ошибка: необходимо указать папки через -games")
 		os.Exit(1)
 	}
-	
+
 	err := os.MkdirAll("builds", 0755)
 	if err != nil {
 		fmt.Println("Ошибка создания папки builds:", err)
@@ -105,7 +105,7 @@ func batchCmd() {
 	}
 
 	gamePaths := strings.Split(*games, ",")
-	
+
 	if *mode == "embed" {
 		if _, err := os.Stat("game_data"); err == nil {
 			os.Rename("game_data", "game_data_bak")
@@ -115,13 +115,15 @@ func batchCmd() {
 
 	for _, gPath := range gamePaths {
 		gPath = strings.TrimSpace(gPath)
-		if gPath == "" { continue }
-		
+		if gPath == "" {
+			continue
+		}
+
 		gameName := filepath.Base(filepath.Clean(gPath))
 		fmt.Printf("\n=== Обработка игры: %s ===\n", gameName)
-		
+
 		outExe := filepath.Join("builds", gameName+".exe")
-		
+
 		if *mode == "embed" {
 			os.RemoveAll("game_data")
 			err := copyDir(gPath, "game_data")
@@ -143,14 +145,18 @@ func batchCmd() {
 
 func copyDir(src, dst string) error {
 	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		rel, _ := filepath.Rel(src, path)
 		target := filepath.Join(dst, rel)
 		if d.IsDir() {
 			return os.MkdirAll(target, 0755)
 		}
 		data, err := os.ReadFile(path)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		return os.WriteFile(target, data, 0644)
 	})
 }
@@ -182,23 +188,31 @@ func packGame(in string, out string, key string) {
 
 	zipWriter := zip.NewWriter(tempZip)
 	err = filepath.WalkDir(in, func(path string, d fs.DirEntry, err error) error {
-		if err != nil { return err }
-		if d.IsDir() { return nil }
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
 
 		relPath, _ := filepath.Rel(in, path)
 		relPath = filepath.ToSlash(relPath)
 
 		f, err := os.Open(path)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		defer f.Close()
 
 		w, err := zipWriter.Create(relPath)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		_, err = io.Copy(w, f)
 		return err
 	})
-	
+
 	if err != nil {
 		fmt.Println("Ошибка при создании ZIP:", err)
 		os.Exit(1)
@@ -252,7 +266,9 @@ func unpackCmd() {
 
 func applyXor(data []byte, key []byte) {
 	keyLen := len(key)
-	if keyLen == 0 { return }
+	if keyLen == 0 {
+		return
+	}
 	for i := 0; i < len(data); i++ {
 		data[i] ^= key[i%keyLen]
 	}
@@ -262,12 +278,12 @@ func generateWinRes() {
 	if _, err := os.Stat("winres/winres.json"); os.IsNotExist(err) {
 		return
 	}
-	
+
 	fmt.Println("Генерация ресурсов Windows (иконка, мета-данные)...")
 	cmd := exec.Command("go", "run", "github.com/tc-hib/go-winres@latest", "make", "--out", "cmd/game/rsrc")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Внимание: Не удалось сгенерировать ресурсы (go-winres): %v\n", err)
 		fmt.Println("Сборка продолжится без иконки и мета-данных.")
