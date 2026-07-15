@@ -39,7 +39,7 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println(`Утилита сборки HTML5 Game Player
+	fmt.Print(`Утилита сборки HTML5 Game Player
 
 Команды:
   build   - Собрать исполняемый файл игры
