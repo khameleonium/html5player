@@ -13,13 +13,14 @@ import (
 )
 
 type Config struct {
-	Title      string
-	Width      int
-	Height     int
-	DevTools   bool
-	MuteAudio  bool
-	Fullscreen bool
-	Frameless  bool
+	Title       string
+	Width       int
+	Height      int
+	DevTools    bool
+	MuteAudio   bool
+	Fullscreen  bool
+	Frameless   bool
+	ContextMenu bool
 }
 
 const ConfigFile = "html5player_config.json"
@@ -27,13 +28,14 @@ const ConfigFile = "html5player_config.json"
 func loadConfig() Config {
 	// Default config
 	cfg := Config{
-		Title:      "HTML5 Portable Game",
-		Width:      1280,
-		Height:     720,
-		DevTools:   false,
-		MuteAudio:  false,
-		Fullscreen: false,
-		Frameless:  false,
+		Title:       "HTML5 Portable Game",
+		Width:       1280,
+		Height:      720,
+		DevTools:    false,
+		MuteAudio:   false,
+		Fullscreen:  false,
+		Frameless:   false,
+		ContextMenu: false,
 	}
 
 	if data, err := os.ReadFile(ConfigFile); err == nil {
@@ -83,6 +85,11 @@ func main() {
 				setInterval(muteMedia, 1000); // Mute dynamically added elements
 			});
 		`)
+	}
+
+	// Disable Context Menu
+	if !cfg.ContextMenu {
+		eng.Init(`window.addEventListener("contextmenu", (e) => e.preventDefault());`)
 	}
 
 	// 4. Bind Go API

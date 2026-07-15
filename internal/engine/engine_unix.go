@@ -9,7 +9,9 @@ import (
 )
 
 type Engine struct {
-	w webview.WebView
+	w            webview.WebView
+	isFullscreen bool
+	isFrameless  bool
 }
 
 func New(title, widthStr, heightStr string) *Engine {
@@ -21,7 +23,21 @@ func New(title, widthStr, heightStr string) *Engine {
 	wv.SetTitle(title)
 	wv.SetSize(w, h, webview.HintNone)
 
-	return &Engine{w: wv}
+	eng := &Engine{w: wv}
+
+	eng.Bind("__os_toggleFullscreen", func() {
+		eng.SetFullscreen(!eng.isFullscreen, eng.isFrameless)
+	})
+
+	eng.Init(`
+		window.addEventListener("keydown", (e) => {
+			if (e.ctrlKey && e.altKey && e.key === "Enter") {
+				window.__os_toggleFullscreen();
+			}
+		});
+	`)
+
+	return eng
 }
 
 func (e *Engine) Destroy() {
@@ -45,7 +61,7 @@ func (e *Engine) Init(js string) {
 }
 
 func (e *Engine) SetFullscreen(fullscreen bool, frameless bool) {
+	e.isFullscreen = fullscreen
+	e.isFrameless = frameless
 	// Not implemented natively in pure Go for GTK/Cocoa yet.
-	// For cross-platform support without Cgo, users can use JS:
-	// document.documentElement.requestFullscreen()
 }

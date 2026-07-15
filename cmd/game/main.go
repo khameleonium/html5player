@@ -11,15 +11,16 @@ import (
 
 // These variables are injected at build time via -ldflags
 var (
-	RunMode    = "embed" // "embed", "dir", "xor"
-	XorKey     = ""      // Key for XOR decryption
-	PakName    = "game_res.pak"
-	DirName    = "game_data"
-	Title      = "My HTML5 Game"
-	Width      = "1280"
-	Height     = "720"
-	Fullscreen = "false"
-	Frameless  = "false"
+	RunMode     = "embed" // "embed", "dir", "xor"
+	XorKey      = ""      // Key for XOR decryption
+	PakName     = "game_res.pak"
+	DirName     = "game_data"
+	Title       = "My HTML5 Game"
+	Width       = "1280"
+	Height      = "720"
+	Fullscreen  = "false"
+	Frameless   = "false"
+	ContextMenu = "false"
 )
 
 func main() {
@@ -57,6 +58,10 @@ func main() {
 	eng := engine.New(Title, Width, Height)
 	eng.SetFullscreen(Fullscreen == "true", Frameless == "true")
 	defer eng.Destroy()
+
+	if ContextMenu != "true" {
+		eng.Init(`window.addEventListener("contextmenu", (e) => e.preventDefault());`)
+	}
 
 	// 3. Bind Go API to JavaScript (accessible via window.api)
 	myApi := api.NewAPI()
