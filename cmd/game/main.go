@@ -38,10 +38,26 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to initialize XOR datasource: %v", err)
 		}
+	case "embed-xor":
+		if XorKey == "" {
+			log.Fatal("XOR key is empty!")
+		}
+		data, err := html5gameplayer.GetGameDataXor()
+		if err != nil {
+			log.Fatalf("Failed to get embedded xor data: %v", err)
+		}
+		ds, err = server.NewXorBytesDataSource(data, XorKey)
+		if err != nil {
+			log.Fatalf("Failed to initialize embed-xor datasource: %v", err)
+		}
 	case "embed":
 		fallthrough
 	default:
-		ds, err = server.NewEmbedDataSource(html5gameplayer.GameData)
+		rawFS, err := html5gameplayer.GetGameData()
+		if err != nil {
+			log.Fatalf("Failed to get raw embed data: %v", err)
+		}
+		ds, err = server.NewEmbedDataSource(rawFS)
 		if err != nil {
 			log.Fatalf("Failed to initialize embed datasource: %v", err)
 		}

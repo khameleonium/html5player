@@ -78,15 +78,15 @@ func loadConfig() Config {
 }
 
 func buildCmd() {
-	mode := flag.String("mode", "embed", "Режим сборки: embed, dir, xor")
+	mode := flag.String("mode", "embed", "Режим сборки: embed, dir, xor, embed-xor")
 	out := flag.String("out", "game.exe", "Имя выходного файла")
-	key := flag.String("key", "", "Ключ для XOR (обязательно для mode=xor)")
+	key := flag.String("key", "", "Ключ для XOR (обязательно для mode=xor и embed-xor)")
 	dirName := flag.String("dirName", "game_data", "Имя папки для dir режима")
 	pakName := flag.String("pakName", "game_res.pak", "Имя pak файла для xor режима")
 	flag.Parse()
 
-	if *mode == "xor" && *key == "" {
-		fmt.Println("Ошибка: для режима xor необходимо указать -key")
+	if (*mode == "xor" || *mode == "embed-xor") && *key == "" {
+		fmt.Println("Ошибка: для этого режима необходимо указать -key")
 		os.Exit(1)
 	}
 
@@ -103,7 +103,16 @@ func buildGame(out string, mode string, key string, dirName string, pakName stri
 
 	generateWinRes()
 
-	cmd := exec.Command("go", "build", "-ldflags", ldflags, "-o", out, "./cmd/game")
+	cmdArgs := []string{"build", "-ldflags", ldflags, "-o", out}
+	if mode == "embed-xor" {
+		cmdArgs = append(cmdArgs, "-tags", "embed_xor")
+		fmt.Println("Временная упаковка в game_data_xor.pak...")
+		packGame(dirName, "game_data_xor.pak", key)
+		defer os.Remove("game_data_xor.pak")
+	}
+	cmdArgs = append(cmdArgs, "./cmd/game")
+
+	cmd := exec.Command("go", cmdArgs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -116,9 +125,9 @@ func buildGame(out string, mode string, key string, dirName string, pakName stri
 
 func batchCmd() {
 	batchFlags := flag.NewFlagSet("batch", flag.ExitOnError)
-	mode := batchFlags.String("mode", "embed", "Режим сборки: embed, dir, xor")
-	games := batchFlags.String("games", "", "Пути к папкам игр через запятую")
-	key := batchFlags.String("key", "", "Ключ для XOR (если xor)")
+	mode := batchFlags.String("mode", "embed", "Режим сборки: embed, dir, xor, embed-xor")
+	games := batchFlags.String("games", "", "Пути к играм через запятую")
+	key := batchFlags.String("key", "", "Ключ для XOR (обязательно для xor и embed-xor)")
 	batchFlags.Parse(os.Args[2:])
 
 	if *games == "" {
@@ -134,7 +143,7 @@ func batchCmd() {
 
 	gamePaths := strings.Split(*games, ",")
 
-	if *mode == "embed" {
+	if *mode == "embed" || *mode == "embed-xor" {
 		if _, err := os.Stat("game_data"); err == nil {
 			os.Rename("game_data", "game_data_bak")
 			defer os.Rename("game_data_bak", "game_data")
@@ -148,11 +157,11 @@ func batchCmd() {
 		}
 
 		gameName := filepath.Base(filepath.Clean(gPath))
-		fmt.Printf("\n=== Обработка игры: %s ===\n", gameName)
+		fmt.Printf("\n=== Пакетная сборка: %s ===\n", gameName)
 
 		outExe := filepath.Join("builds", gameName+".exe")
 
-		if *mode == "embed" {
+		if *mode == "embed" || *mode == "embed-xor" {
 			os.RemoveAll("game_data")
 			err := copyDir(gPath, "game_data")
 			if err != nil {

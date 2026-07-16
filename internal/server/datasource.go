@@ -38,15 +38,8 @@ func NewDirDataSource(dirPath string) DataSource {
 	return os.DirFS(dirPath)
 }
 
-// 3. XOR Zip Data Source
-func NewXorDataSource(archivePath string, key string) (DataSource, error) {
-	// Read the entire XORed file into memory
-	data, err := os.ReadFile(archivePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decrypt in memory
+// 3. XOR Zip Data Source (From bytes in memory)
+func NewXorBytesDataSource(data []byte, key string) (DataSource, error) {
 	keyBytes := []byte(key)
 	keyLen := len(keyBytes)
 	if keyLen == 0 {
@@ -57,7 +50,6 @@ func NewXorDataSource(archivePath string, key string) (DataSource, error) {
 		data[i] ^= keyBytes[i%keyLen]
 	}
 
-	// Open ZIP from memory
 	reader := bytes.NewReader(data)
 	zipReader, err := zip.NewReader(reader, int64(len(data)))
 	if err != nil {
@@ -65,4 +57,13 @@ func NewXorDataSource(archivePath string, key string) (DataSource, error) {
 	}
 
 	return zipReader, nil
+}
+
+// 4. XOR Zip Data Source (From file)
+func NewXorDataSource(archivePath string, key string) (DataSource, error) {
+	data, err := os.ReadFile(archivePath)
+	if err != nil {
+		return nil, err
+	}
+	return NewXorBytesDataSource(data, key)
 }
